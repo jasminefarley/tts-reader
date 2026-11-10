@@ -27,6 +27,19 @@ curl -X POST http://127.0.0.1:8765/speak -H "Content-Type: application/json" \
      -d '{"text": "Hello there."}' -o hello.wav
 ```
 
+## Docker
+
+`docker-compose.yml` in the repo root builds this folder's `Dockerfile` and runs the
+server with `restart: unless-stopped`, publishing it on `127.0.0.1:8765` only. Inside the
+container it listens on `0.0.0.0` (`TTS_HOST`) so the port mapping can reach it; the
+origin check below still applies. The model lives in the repo's `models/` folder, mounted
+at `/models`, and is downloaded on first start if missing.
+
+```sh
+docker compose up -d --build     # from the repo root
+docker logs -f tts-reader-server
+```
+
 ## API
 
 | Method | Path | Body | Returns |

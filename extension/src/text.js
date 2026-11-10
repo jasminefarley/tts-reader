@@ -39,12 +39,66 @@ const wordCount = (s) => s.split(/\s+/).filter(Boolean).length;
 /** @param {string} s */
 export const collapse = (s) => s.replace(/\s+/g, " ").trim();
 
+/** @typedef {{ from: string, to: string }} Pronunciation */
+
+/**
+ * Starting list, shown in the editor. One `written = spoken` per line.
+ * Checked against Kokoro's phonemizer: lowercase "uat" comes out as "you-at",
+ * and spelling letters with spaces ("U A T") reads the lone "A" as the word "a",
+ * so letters are spelled as one hyphenated word instead.
+ */
+export const DEFAULT_PRONUNCIATIONS = `# One per line: written = spoken. Matches whole words, case-sensitive.
+# Tip: spell letters as one hyphenated word ("you-eh-tee"), not with spaces ("U A T").
+uat = you-eh-tee
+UAT = you-eh-tee
+K-1s = K-ones
+K-2s = K-twos
+K-3s = K-threes
+ONNX = onyx
+`;
+
+/**
+ * @param {string} text the editor contents
+ * @returns {Pronunciation[]}
+ */
+export function parsePronunciations(text) {
+  /** @type {Pronunciation[]} */
+  const rules = [];
+  for (const line of text.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const eq = trimmed.indexOf("=");
+    if (eq <= 0) continue;
+    const from = trimmed.slice(0, eq).trim();
+    const to = trimmed.slice(eq + 1).trim();
+    if (from && to) rules.push({ from, to });
+  }
+  // Longest first, so "K-1 form" wins over "K-1" if both are listed.
+  return rules.sort((a, b) => b.from.length - a.from.length);
+}
+
+/**
+ * Replace whole-word matches. "UAT" matches in "UAT," and "(UAT)" but not in "UATS".
+ * @param {string} text
+ * @param {Pronunciation[]} rules
+ */
+export function applyPronunciations(text, rules) {
+  let s = text;
+  for (const { from, to } of rules) {
+    const escaped = from.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    s = s.replace(new RegExp(`(?<![A-Za-z0-9_])${escaped}(?![A-Za-z0-9_])`, "g"), to);
+  }
+  return s;
+}
+
 /**
  * What the voice should say for a piece of display text.
  * @param {string} text
+ * @param {Pronunciation[]} [pronunciations]
  */
-export function speechFor(text) {
-  let s = text.replace(/https?:\/\/[^\s)>\]]+/g, (url) => {
+export function speechFor(text, pronunciations = []) {
+  let s = applyPronunciations(text, pronunciations);
+  s = s.replace(/https?:\/\/[^\s)>\]]+/g, (url) => {
     try {
       return `link to ${new URL(url).hostname.replace(/^www\./, "")}`;
     } catch {
@@ -139,9 +193,10 @@ const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 /**
  * Turn blocks into what the reader shows and says.
  * @param {Block[]} blocks
+ * @param {{ pronunciations?: Pronunciation[] }} [options]
  * @returns {ReadBlock[]}
  */
-export function toReadBlocks(blocks) {
+export function toReadBlocks(blocks, { pronunciations = [] } = {}) {
   let first = true;
   /** @type {ReadBlock[]} */
   const result = [];
@@ -169,14 +224,14 @@ export function toReadBlocks(blocks) {
         },
       ];
     } else if (block.type === "heading") {
-      sentences = [{ display: block.text, speech: speechFor(block.text), pauseAfter: PAUSES.heading }];
+      sentences = [{ display: block.text, speech: speechFor(block.text, pronunciations), pauseAfter: PAUSES.heading }];
     } else {
       let parts = splitSentences(block.text);
       if (first && parts.length) parts = [...splitLong(parts[0], LIMITS.firstMaxChars), ...parts.slice(1)];
       const endPause = block.type === "listItem" ? PAUSES.listItem : PAUSES.paragraph;
       sentences = parts.map((display, i) => ({
         display,
-        speech: speechFor(display),
+        speech: speechFor(display, pronunciations),
         pauseAfter: i === parts.length - 1 ? endPause : PAUSES.sentence,
       }));
     }

@@ -6,7 +6,15 @@ import { readPage } from "./extract.js";
 import { blocksFromHtml } from "./html.js";
 import { Player } from "./player.js";
 import { AutoScroller, Highlighter, render } from "./reader.js";
-import { blocksFromText, preferHtml, toReadBlocks } from "./text.js";
+import { savePosition, forgetPosition, positionKey, savedPosition } from "./positions.js";
+import {
+  DEFAULT_PRONUNCIATIONS,
+  blocksFromText,
+  parsePronunciations,
+  preferHtml,
+  speechFor,
+  toReadBlocks,
+} from "./text.js";
 
 const SPEEDS = [0.8, 0.9, 1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.75, 2];
 
@@ -35,12 +43,21 @@ let items = [];
 /** @type {Highlighter | null} */
 let highlighter = null;
 
-const settings = { speed: 1, voice: /** @type {string | null} */ (null) };
+const settings = {
+  speed: 1,
+  voice: /** @type {string | null} */ (null),
+  pronunciations: DEFAULT_PRONUNCIATIONS,
+};
+let pronunciationRules = parsePronunciations(settings.pronunciations);
+
+/** Key for remembering the position in what's being read. */
+let docKey = "";
 
 // ---------- startup ----------
 
 for (const s of SPEEDS) speedSelect.add(new Option(`${s}×`, String(s)));
 await loadSettings();
+pronunciationRules = parsePronunciations(settings.pronunciations);
 speedSelect.value = String(settings.speed);
 checkServer();
 
@@ -172,16 +189,19 @@ function hideBanner() {
 
 async function loadSettings() {
   try {
-    const saved = await chrome.storage.local.get(["speed", "voice"]);
+    const saved = await chrome.storage.local.get(["speed", "voice", "pronunciations"]);
     if (typeof saved.speed === "number" && SPEEDS.includes(saved.speed)) settings.speed = saved.speed;
     if (typeof saved.voice === "string") settings.voice = saved.voice;
+    if (typeof saved.pronunciations === "string") settings.pronunciations = saved.pronunciations;
   } catch {
     // storage unavailable: defaults are fine
   }
 }
 
 function saveSettings() {
-  chrome.storage.local.set({ speed: settings.speed, voice: settings.voice }).catch(() => {});
+  chrome.storage.local
+    .set({ speed: settings.speed, voice: settings.voice, pronunciations: settings.pronunciations })
+    .catch(() => {});
 }
 
 // ---------- input ----------
@@ -215,14 +235,14 @@ function showInput() {
  * @param {string} plain
  * @param {string} [title] shown and read first, unless the content starts with a heading
  */
-function open(html, plain, title = "") {
+async function open(html, plain, title = "") {
   // Rich HTML when it has structure; plain text (parsed as markdown) otherwise.
   const useHtml = html && (preferHtml(html) || !plain.trim());
   const blocks = useHtml ? blocksFromHtml(html) : blocksFromText(plain);
   if (title.trim() && blocks[0]?.type !== "heading") {
     blocks.unshift({ type: "heading", level: 1, text: title.trim() });
   }
-  const readBlocks = toReadBlocks(blocks);
+  const readBlocks = toReadBlocks(blocks, { pronunciations: pronunciationRules });
   if (!readBlocks.some((rb) => rb.sentences.some((s) => !s.skipped))) {
     showInput();
     showStatus("Couldn't find any readable text there. Try selecting the text, or paste it below.");
@@ -230,7 +250,10 @@ function open(html, plain, title = "") {
   }
 
   player?.stop();
+  player = null;
   items = render(readBlocks, doc);
+  docKey = await positionKey(items.map((item) => item.display));
+  const resumeAt = await savedPosition(docKey, items.length);
   highlighter = new Highlighter(items);
   doc.scrollTop = 0;
 
@@ -239,6 +262,7 @@ function open(html, plain, title = "") {
   player.addEventListener("state", onState);
   player.addEventListener("ended", () => {
     positionLabel.textContent = "Finished";
+    forgetPosition(docKey);
   });
   player.addEventListener("error", (e) => {
     const err = /** @type {CustomEvent<Error>} */ (e).detail;
@@ -251,7 +275,9 @@ function open(html, plain, title = "") {
   inputView.hidden = true;
   readerView.hidden = false;
   playButton.focus();
-  player.play(0);
+  forceReveal = true;
+  player.play(resumeAt);
+  if (resumeAt > 0) positionLabel.textContent += " · resumed where you left off (↺ to start over)";
 }
 
 // ---------- reader ----------
@@ -267,6 +293,7 @@ function onPosition() {
   forceReveal = false;
   positionLabel.textContent = `${index + 1} / ${items.length}`;
   progressBar.style.width = `${((index + 1) / items.length) * 100}%`;
+  savePosition(docKey, index, items.length);
 }
 
 function onState() {
@@ -315,6 +342,7 @@ doc.addEventListener("click", (e) => {
 });
 
 playButton.addEventListener("click", () => player?.toggle());
+$("restart").addEventListener("click", () => jumpTo(0));
 $("prev").addEventListener("click", () => player && jumpTo(player.index - 1));
 $("next").addEventListener("click", () => player && jumpTo(player.index + 1));
 $("prev-block").addEventListener("click", () => jumpTo(prevBlockStart()));
@@ -362,4 +390,35 @@ document.addEventListener("keydown", (e) => {
     }
   })();
   if (handled) e.preventDefault();
+});
+
+// ---------- pronunciations ----------
+
+const pronunciationDialog = /** @type {HTMLDialogElement} */ ($("pronunciations"));
+const pronunciationText = /** @type {HTMLTextAreaElement} */ ($("pronunciation-text"));
+
+for (const button of document.querySelectorAll(".open-pronunciations")) {
+  button.addEventListener("click", () => {
+    pronunciationText.value = settings.pronunciations;
+    pronunciationDialog.showModal();
+    pronunciationText.focus();
+  });
+}
+
+$("pronunciation-reset").addEventListener("click", () => {
+  pronunciationText.value = DEFAULT_PRONUNCIATIONS;
+});
+
+pronunciationDialog.addEventListener("close", () => {
+  if (pronunciationDialog.returnValue !== "save") return;
+  settings.pronunciations = pronunciationText.value;
+  pronunciationRules = parsePronunciations(settings.pronunciations);
+  saveSettings();
+  // Apply to what's being read right now, from the current sentence on.
+  if (player) {
+    for (const item of items) {
+      if (!item.skipped) item.speech = speechFor(item.display, pronunciationRules);
+    }
+    player.refresh();
+  }
 });

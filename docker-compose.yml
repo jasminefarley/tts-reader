@@ -1,0 +1,13 @@
+services:
+  tts-server:
+    build: ./server
+    image: tts-reader-server
+    container_name: tts-reader-server
+    # Published on this machine only, never on the network.
+    ports:
+      - "127.0.0.1:8765:8765"
+    # The voice model (~350 MB). Downloaded here on first start, reused after.
+    volumes:
+      - ./models:/models
+    # Comes back whenever Docker Desktop starts (e.g. at login).
+    restart: unless-stopped

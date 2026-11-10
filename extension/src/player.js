@@ -155,6 +155,11 @@ export class Player extends EventTarget {
     }, REFETCH_DELAY_MS);
   }
 
+  /** The items' speech changed (e.g. pronunciations were edited): regenerate. */
+  refresh() {
+    this.resetClips();
+  }
+
   /** @param {string | null} voice */
   setVoice(voice) {
     this.voice = voice;
@@ -181,7 +186,7 @@ export class Player extends EventTarget {
     this.audio.playbackRate = rate;
   }
 
-  /** Voice changed: cached clips are wrong now. Restart the current sentence. */
+  /** Voice or text changed: cached clips are wrong now. Restart the current sentence. */
   resetClips() {
     this.dropClips(() => true);
     if (this.playing) this.play(this.index);

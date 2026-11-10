@@ -18,7 +18,10 @@
       You can also paste text here (Ctrl+V).
     </p>
     <textarea id="paste" placeholder="Paste here…"></textarea>
-    <button type="button" id="read">Read typed text</button>
+    <div class="row">
+      <button type="button" id="read">Read typed text</button>
+      <button type="button" class="open-pronunciations">Pronunciations…</button>
+    </div>
   </main>
 
   <div id="reader-view" class="reader-view" hidden>
@@ -33,13 +36,33 @@
       <div class="settings">
         <label>Speed <select id="speed" title="Speed ([ and ])"></select></label>
         <label>Voice <select id="voice"></select></label>
-        <button type="button" id="new" title="Paste something else">New</button>
+        <button type="button" class="open-pronunciations" title="Edit pronunciations">Aa</button>
+        <button type="button" id="restart" title="Start from the beginning">↺</button>
+        <button type="button" id="new" title="Read something else">New</button>
       </div>
       <div class="progress" aria-hidden="true"><div id="progress-bar"></div></div>
       <div id="position" class="position" aria-live="polite"></div>
     </header>
     <article id="doc" class="doc" tabindex="-1"></article>
   </div>
+
+  <dialog id="pronunciations" class="dialog">
+    <form method="dialog">
+      <h2>Pronunciations</h2>
+      <p class="hint">
+        One per line: <code>written = spoken</code>. Whole words only, and case matters
+        (<code>uat</code> and <code>UAT</code> are separate lines). Spell out letters as one
+        hyphenated word, like <code>you-eh-tee</code>.
+      </p>
+      <textarea id="pronunciation-text" spellcheck="false"></textarea>
+      <div class="row">
+        <button type="button" id="pronunciation-reset">Reset to defaults</button>
+        <span class="spacer"></span>
+        <button value="cancel">Cancel</button>
+        <button value="save" class="primary" id="pronunciation-save">Save</button>
+      </div>
+    </form>
+  </dialog>
 
   <script type="module" src="src/panel.js"></script>
 </body>

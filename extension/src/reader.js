@@ -2,7 +2,7 @@
 // Renders read blocks, highlights the current sentence and keeps it in view.
 
 /** @typedef {import("./text.js").ReadBlock} ReadBlock */
-/** @typedef {{ speech: string, pauseAfter: number, el: HTMLElement, blockEl: HTMLElement }} Item */
+/** @typedef {{ display: string, speech: string, pauseAfter: number, skipped: boolean, el: HTMLElement, blockEl: HTMLElement }} Item */
 
 /**
  * @param {ReadBlock[]} readBlocks
@@ -23,7 +23,7 @@ export function render(readBlocks, root) {
       blockEl.textContent = sentences[0].display;
       blockEl.title = sentences[0].speech;
       blockEl.dataset.index = String(items.length);
-      items.push({ speech: sentences[0].speech, pauseAfter: sentences[0].pauseAfter, el: blockEl, blockEl });
+      items.push({ display: sentences[0].display, speech: sentences[0].speech, pauseAfter: sentences[0].pauseAfter, skipped: true, el: blockEl, blockEl });
       root.append(blockEl);
       continue;
     }
@@ -44,7 +44,7 @@ export function render(readBlocks, root) {
       span.dataset.index = String(items.length);
       if (i > 0) blockEl.append(" ");
       blockEl.append(span);
-      items.push({ speech: sentence.speech, pauseAfter: sentence.pauseAfter, el: span, blockEl });
+      items.push({ display: sentence.display, speech: sentence.speech, pauseAfter: sentence.pauseAfter, skipped: false, el: span, blockEl });
     });
     root.append(blockEl);
   }

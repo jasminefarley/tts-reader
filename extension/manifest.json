@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "tts-reader",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Reads pages, selections or pasted text aloud with a local voice, highlighting each sentence as it's spoken.",
   "minimum_chrome_version": "116",
   "permissions": ["sidePanel", "storage", "scripting", "activeTab", "contextMenus", "tabs"],
