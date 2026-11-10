@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "tts-reader spike",
+  "version": "0.0.1",
+  "description": "Phase 0 spike: can the side panel reach the local server, and can we read text inside page frames?",
+  "permissions": ["sidePanel", "scripting", "activeTab"],
+  "host_permissions": ["http://127.0.0.1:8765/*", "<all_urls>"],
+  "side_panel": { "default_path": "panel.html" },
+  "action": { "default_title": "tts-reader spike" },
+  "background": { "service_worker": "background.js" }
+}
