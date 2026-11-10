@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "tts-reader",
+  "version": "0.2.0",
+  "description": "Reads pasted text aloud with a local voice, highlighting each sentence as it's spoken.",
+  "minimum_chrome_version": "116",
+  "permissions": ["sidePanel", "storage"],
+  "host_permissions": ["http://127.0.0.1:8765/*"],
+  "side_panel": { "default_path": "panel.html" },
+  "action": { "default_title": "Open tts-reader" },
+  "background": { "service_worker": "background.js" }
+}

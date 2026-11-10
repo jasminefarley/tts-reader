@@ -9,7 +9,7 @@ Two parts:
 | Folder | What |
 |---|---|
 | [`server/`](server/) | Local Python server that turns a sentence into audio |
-| `extension/` | Chrome side-panel reader (coming next) |
+| [`extension/`](extension/) | Chrome side-panel reader: paste text, listen, follow along |
 | [`spike/`](spike/) | Throwaway experiments from the first feasibility check |
 
 ## Installation
@@ -73,8 +73,6 @@ extensions and local tools. More detail, including settings, is in
 
 ### 5. Load the extension in Chrome
 
-> The extension is still being built. These steps apply once `extension/` exists.
-
 1. Open `chrome://extensions`.
 2. Turn on **Developer mode** (top right).
 3. Click **Load unpacked** and choose the `extension` folder in this repo.
@@ -83,6 +81,24 @@ extensions and local tools. More detail, including settings, is in
 
 After pulling new changes, click the reload icon on the extension's card in
 `chrome://extensions`.
+
+## Using it
+
+1. Make sure the server is running (step 4).
+2. Open the side panel from the tts-reader icon.
+3. Copy text from a Claude artifact or an article (select it, then Ctrl+C) and paste it
+   into the box (Ctrl+V). Reading starts straight away, and the sentence being read is
+   highlighted.
+
+| Key | Action |
+|---|---|
+| Space | Play / pause |
+| ← / → | Previous / next sentence |
+| Shift+← / Shift+→ | Previous / next paragraph |
+| `[` / `]` | Slower / faster |
+
+Click any sentence to read from there. Code blocks and tables are shown but not read
+aloud. Speed and voice are remembered.
 
 ### Troubleshooting
 

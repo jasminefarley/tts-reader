@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>tts-reader</title>
+  <link rel="stylesheet" href="panel.css">
+</head>
+<body>
+  <div id="banner" class="banner" role="alert" hidden></div>
+
+  <main id="input-view" class="input-view">
+    <h1>tts-reader</h1>
+    <p class="hint">
+      Copy text from an artifact or an article and paste it here (Ctrl+V). Reading starts
+      straight away.
+    </p>
+    <textarea id="paste" placeholder="Paste here…" autofocus></textarea>
+    <button type="button" id="read" class="primary">Read typed text</button>
+  </main>
+
+  <div id="reader-view" class="reader-view" hidden>
+    <header class="toolbar">
+      <div class="controls" role="group" aria-label="Playback">
+        <button type="button" id="prev-block" title="Previous paragraph (Shift+←)" aria-label="Previous paragraph">«</button>
+        <button type="button" id="prev" title="Previous sentence (←)" aria-label="Previous sentence">‹</button>
+        <button type="button" id="play" class="primary play" title="Play (Space)" aria-label="Play">▶</button>
+        <button type="button" id="next" title="Next sentence (→)" aria-label="Next sentence">›</button>
+        <button type="button" id="next-block" title="Next paragraph (Shift+→)" aria-label="Next paragraph">»</button>
+      </div>
+      <div class="settings">
+        <label>Speed <select id="speed" title="Speed ([ and ])"></select></label>
+        <label>Voice <select id="voice"></select></label>
+        <button type="button" id="new" title="Paste something else">New</button>
+      </div>
+      <div class="progress" aria-hidden="true"><div id="progress-bar"></div></div>
+      <div id="position" class="position" aria-live="polite"></div>
+    </header>
+    <article id="doc" class="doc" tabindex="-1"></article>
+  </div>
+
+  <script type="module" src="src/panel.js"></script>
+</body>
+</html>
