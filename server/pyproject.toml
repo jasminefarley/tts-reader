@@ -1,0 +1,37 @@
+[project]
+name = "tts-reader-server"
+version = "0.1.0"
+description = "Local text-to-speech server for tts-reader (Kokoro, CPU)"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn>=0.30",
+    "kokoro-onnx>=0.4",
+    "numpy>=1.26",
+    "soundfile>=0.12",
+]
+
+[project.scripts]
+tts-server = "tts_server.cli:serve"
+tts-download-models = "tts_server.cli:download_models"
+
+[dependency-groups]
+dev = ["pytest>=8", "httpx>=0.27", "ruff>=0.6"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/tts_server"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
