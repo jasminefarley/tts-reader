@@ -12,17 +12,86 @@ Two parts:
 | `extension/` | Chrome side-panel reader (coming next) |
 | [`spike/`](spike/) | Throwaway experiments from the first feasibility check |
 
-## Quick start
+## Installation
 
-1. Install [uv](https://docs.astral.sh/uv/).
-2. Start the server (details in [`server/README.md`](server/README.md)):
+### What you need
 
-   ```sh
-   cd server
-   uv sync
-   uv run tts-download-models
-   uv run tts-server
-   ```
+- **Google Chrome**
+- **Git**
+- **[uv](https://docs.astral.sh/uv/)**, the Python package manager. You don't need to
+  install Python yourself; uv downloads Python 3.12 when it needs it.
+- About **400 MB** of disk space for the voice model and its dependencies. No GPU needed.
+
+### 1. Install uv
+
+Windows (PowerShell):
+
+```powershell
+winget install --id=astral-sh.uv -e
+```
+
+macOS or Linux:
+
+```sh
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+Open a new terminal afterwards, then check it with `uv --version`.
+
+### 2. Get the code
+
+```sh
+git clone https://github.com/jasminefarley/tts-reader.git
+cd tts-reader
+```
+
+### 3. Set up the server
+
+```sh
+cd server
+uv sync                      # installs the dependencies
+uv run tts-download-models   # downloads the voice model (~350 MB) into ../models, once
+```
+
+### 4. Start the server
+
+```sh
+uv run tts-server
+```
+
+Leave this terminal open while you use the reader. It's ready when it prints
+`Uvicorn running on http://127.0.0.1:8765`. To check it from another terminal:
+
+```sh
+curl http://127.0.0.1:8765/health
+# {"ok":true,"voice":"af_sky"}
+```
+
+The server only listens on your own machine, and only accepts requests from Chrome
+extensions and local tools. More detail, including settings, is in
+[`server/README.md`](server/README.md).
+
+### 5. Load the extension in Chrome
+
+> The extension is still being built. These steps apply once `extension/` exists.
+
+1. Open `chrome://extensions`.
+2. Turn on **Developer mode** (top right).
+3. Click **Load unpacked** and choose the `extension` folder in this repo.
+4. Pin **tts-reader** from the puzzle-piece menu, then click its icon to open the
+   reader in the side panel.
+
+After pulling new changes, click the reload icon on the extension's card in
+`chrome://extensions`.
+
+### Troubleshooting
+
+| Problem | Fix |
+|---|---|
+| `Model files not found` when starting | Run `uv run tts-download-models` from the `server` folder |
+| `address already in use` / port 8765 busy | Another copy is running. Stop it, or start on another port with `TTS_PORT=8766` (the extension's server address would need to match) |
+| Reader says the server isn't running | Start it with `uv run tts-server` in the `server` folder |
+| `uv` not found after installing | Open a new terminal so it picks up the updated `PATH` |
 
 ## License
 
