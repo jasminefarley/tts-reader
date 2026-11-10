@@ -118,6 +118,19 @@ code {
 
 #read { align-self: flex-start; }
 
+button.big { padding: 10px 14px; font-weight: 600; }
+
+.status {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--surface);
+  font-size: 13px;
+}
+
+.status[hidden] { display: none; }
+.status button { margin-top: 6px; display: block; }
+
 /* ---------- reader view ---------- */
 
 .reader-view {

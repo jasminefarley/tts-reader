@@ -1,7 +1,8 @@
 // @ts-check
-// Side panel: paste box -> reader view with playback and follow-along.
+// Side panel: page / selection / paste -> reader view with playback and follow-along.
 
 import { SERVER } from "./config.js";
+import { readPage } from "./extract.js";
 import { blocksFromHtml } from "./html.js";
 import { Player } from "./player.js";
 import { AutoScroller, Highlighter, render } from "./reader.js";
@@ -23,6 +24,7 @@ const speedSelect = /** @type {HTMLSelectElement} */ ($("speed"));
 const voiceSelect = /** @type {HTMLSelectElement} */ ($("voice"));
 const progressBar = $("progress-bar");
 const positionLabel = $("position");
+const pageStatus = $("page-status");
 
 const scroller = new AutoScroller(doc);
 
@@ -41,6 +43,91 @@ for (const s of SPEEDS) speedSelect.add(new Option(`${s}×`, String(s)));
 await loadSettings();
 speedSelect.value = String(settings.speed);
 checkServer();
+
+// Content picked from the right-click menu arrives through session storage.
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === "session" && changes.pending?.newValue) takePending();
+});
+takePending();
+
+// ---------- reading the page ----------
+
+$("read-page").addEventListener("click", readCurrentPage);
+
+async function readCurrentPage() {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab?.id || !tab.url || !/^https?:/.test(tab.url)) {
+    showStatus("Chrome doesn't let extensions read this page. Copy the text and paste it below.");
+    return;
+  }
+  // Access is per site, asked for the first time you read one.
+  const allowed = await chrome.permissions.request({ origins: [`${new URL(tab.url).origin}/*`] });
+  if (!allowed) {
+    showStatus("tts-reader needs your permission to read pages on this site.");
+    return;
+  }
+  showStatus("Reading the page…");
+  handleResult(await readPage(tab.id));
+}
+
+/** @param {import("./extract.js").ReadResult} result */
+function handleResult(result) {
+  if (result.ok) {
+    hideStatus();
+    open(result.html, result.plain ?? "", result.title);
+    return;
+  }
+  showInput();
+  if ("blockedOrigins" in result) {
+    const origins = result.blockedOrigins;
+    showStatus(
+      `The content is in an embedded frame from ${origins.join(", ")}, which tts-reader ` +
+        "isn't allowed to read yet.",
+      {
+        label: "Allow and read",
+        onClick: async () => {
+          const ok = await chrome.permissions.request({ origins: origins.map((o) => `${o}/*`) });
+          if (ok) readCurrentPage();
+        },
+      }
+    );
+    return;
+  }
+  showStatus(`${result.error} Select the text and right-click → Read selection aloud, or paste it below.`);
+}
+
+async function takePending() {
+  let pending;
+  try {
+    ({ pending } = await chrome.storage.session.get("pending"));
+    if (!pending) return;
+    await chrome.storage.session.remove("pending");
+  } catch {
+    return;
+  }
+  if (Date.now() - pending.at > 60_000) return; // stale, from an earlier session
+  handleResult(pending.result);
+}
+
+/**
+ * @param {string} text
+ * @param {{ label: string, onClick: () => void }} [action]
+ */
+function showStatus(text, action) {
+  pageStatus.replaceChildren(text);
+  if (action) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = action.label;
+    button.addEventListener("click", action.onClick);
+    pageStatus.append(button);
+  }
+  pageStatus.hidden = false;
+}
+
+function hideStatus() {
+  pageStatus.hidden = true;
+}
 
 // ---------- server ----------
 
@@ -110,23 +197,35 @@ pasteBox.addEventListener("paste", (e) => {
 readButton.addEventListener("click", () => open("", pasteBox.value));
 
 $("new").addEventListener("click", () => {
-  player?.stop();
-  player = null;
-  readerView.hidden = true;
-  inputView.hidden = false;
+  showInput();
+  hideStatus();
   pasteBox.value = "";
   pasteBox.focus();
 });
 
+function showInput() {
+  player?.stop();
+  player = null;
+  readerView.hidden = true;
+  inputView.hidden = false;
+}
+
 /**
  * @param {string} html
  * @param {string} plain
+ * @param {string} [title] shown and read first, unless the content starts with a heading
  */
-function open(html, plain) {
-  const blocks = html && preferHtml(html) ? blocksFromHtml(html) : blocksFromText(plain);
+function open(html, plain, title = "") {
+  // Rich HTML when it has structure; plain text (parsed as markdown) otherwise.
+  const useHtml = html && (preferHtml(html) || !plain.trim());
+  const blocks = useHtml ? blocksFromHtml(html) : blocksFromText(plain);
+  if (title.trim() && blocks[0]?.type !== "heading") {
+    blocks.unshift({ type: "heading", level: 1, text: title.trim() });
+  }
   const readBlocks = toReadBlocks(blocks);
-  if (!readBlocks.length) {
-    pasteBox.placeholder = "Nothing readable in that paste. Try copying the text again.";
+  if (!readBlocks.some((rb) => rb.sentences.some((s) => !s.skipped))) {
+    showInput();
+    showStatus("Couldn't find any readable text there. Try selecting the text, or paste it below.");
     return;
   }
 

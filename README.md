@@ -9,7 +9,7 @@ Two parts:
 | Folder | What |
 |---|---|
 | [`server/`](server/) | Local Python server that turns a sentence into audio |
-| [`extension/`](extension/) | Chrome side-panel reader: paste text, listen, follow along |
+| [`extension/`](extension/) | Chrome side-panel reader: read a page, a selection or pasted text, and follow along |
 | [`spike/`](spike/) | Throwaway experiments from the first feasibility check |
 
 ## Installation
@@ -84,11 +84,18 @@ After pulling new changes, click the reload icon on the extension's card in
 
 ## Using it
 
-1. Make sure the server is running (step 4).
-2. Open the side panel from the tts-reader icon.
-3. Copy text from a Claude artifact or an article (select it, then Ctrl+C) and paste it
-   into the box (Ctrl+V). Reading starts straight away, and the sentence being read is
-   highlighted.
+Make sure the server is running (step 4), then any of these:
+
+- **Read a whole page:** open the side panel from the tts-reader icon and click
+  **Read this page**. On articles it reads just the main content (no menus, ads or
+  footers). On claude.ai it reads the open artifact.
+- **Read a selection:** select text, right-click, **Read selection aloud**.
+- **Paste:** copy text from anywhere and paste it into the side panel's box (Ctrl+V).
+
+Reading starts straight away, and the sentence being read is highlighted.
+
+The first time you read a page on a new site, Chrome asks whether tts-reader may read
+that site. Access is per site; claude.ai and its artifacts are allowed from the start.
 
 | Key | Action |
 |---|---|

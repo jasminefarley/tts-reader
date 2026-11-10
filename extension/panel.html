@@ -11,12 +11,14 @@
 
   <main id="input-view" class="input-view">
     <h1>tts-reader</h1>
+    <button type="button" id="read-page" class="primary big">Read this page</button>
+    <p id="page-status" class="status" role="status" hidden></p>
     <p class="hint">
-      Copy text from an artifact or an article and paste it here (Ctrl+V). Reading starts
-      straight away.
+      Or select text on the page, right-click and choose <strong>Read selection aloud</strong>.
+      You can also paste text here (Ctrl+V).
     </p>
-    <textarea id="paste" placeholder="Paste here…" autofocus></textarea>
-    <button type="button" id="read" class="primary">Read typed text</button>
+    <textarea id="paste" placeholder="Paste here…"></textarea>
+    <button type="button" id="read">Read typed text</button>
   </main>
 
   <div id="reader-view" class="reader-view" hidden>
